@@ -1,0 +1,43 @@
+{
+  "description": "Generate targets from Proxmox",
+  "files": ["ruby_task_helper/files/task_helper.rb",
+    "ruby_plugin_helper/lib/plugin_helper.rb"
+  ],
+  "input_method": "stdin",
+  "parameters": {
+    "username": {
+      "type": "Optional[String]"
+    },
+    "password": {
+      "type": "Optional[String]",
+      "sensitive": true
+    },
+    "otp": {
+      "type": "Optional[String]",
+      "sensitive": true
+    },
+    "realm": {
+      "type": "Optional[String]"
+    },
+    "token": {
+      "type": "Optional[String]"
+    },
+    "secret": {
+      "type": "Optional[String]",
+      "sensitive": true
+    },
+    "host": {
+      "type": "String"
+    },
+    "port": {
+      "type": "Optional[Integer]"
+    },
+    "verify_ssl": {
+      "type": "Optional[Boolean]"
+    },
+    "target_mapping": {
+      "type": "Hash"
+    }
+  },
+  "private": true
+}
