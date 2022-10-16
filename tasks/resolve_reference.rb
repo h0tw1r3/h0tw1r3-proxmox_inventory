@@ -21,12 +21,30 @@ class ProxmoxInventory < TaskHelper
     }.to_h
   end
 
-  def build_data(resource, config)
-    config.keys.grep(%r{^(net|mp|unused)\d+}).map { |v| v.to_s.gsub!(%r{\d+}, '').to_sym }.each do |k|
-      config[k] = []
+  def build_agent(resource, client)
+    net_conf = (client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get)[:result]
+    net_conf.delete_if { |x| x[:name] !~ %r{^e} }.map do |x|
+      x.delete(:statistics)
+      x['hwaddr'] = x.delete(:"hardware-address")
+      x[:"ip-addresses"].delete_if { |b| b[:"ip-address-type"] == 'ipv6' }
+      x['ip'] = x.delete(:"ip-addresses")[0][:"ip-address"]
+      x['name'] = x.delete(:name)
+    end
+    { 'net' => net_conf }
+  end
+
+  def build_data(resource, client)
+    config = client["nodes/#{resource[:node]}/#{resource[:id]}/config?current=1"].get
+
+    if config[:agent] == '1'
+      config[:agent] = build_agent(resource, client)
+    end
+
+    config.keys.grep(%r{^(ipconfig|net|mp|unused)\d+}).each do |v|
+      config[v.to_s.gsub!(%r{\d+}, '').to_sym] = []
     end
     config.each { |k, v|
-      if %r{^(?<index>net|mp|unused)(?<count>\d+)} =~ k.to_s
+      if %r{^(?<index>ipconfig|net|mp|unused)(?<count>\d+)} =~ k.to_s
         config[index.to_sym][count.to_i] = convert_key_value_string(v)
       end
     }.merge(resource)
@@ -84,7 +102,7 @@ class ProxmoxInventory < TaskHelper
 
     # Retrieve node configuration
     targets = resources.map do |res|
-      build_data(res, client["nodes/#{res[:node]}/#{res[:id]}/config?current=1"].get)
+      build_data(res, client)
     end
 
     attributes = required_data(template)
