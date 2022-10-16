@@ -86,6 +86,12 @@ class ProxmoxInventory < TaskHelper
     ProxmoxAPI.new(*config)
   end
 
+  def filter_targets(targets)
+    targets.delete_if do |t|
+      t[:type] == 'qemu' && t[:agent].class != Hash
+    end
+  end
+
   def resolve_reference(opts)
     template = opts.delete(:target_mapping) || {}
     unless template.key?(:uri) || template.key?(:name)
@@ -104,6 +110,8 @@ class ProxmoxInventory < TaskHelper
     targets = resources.map do |res|
       build_data(res, client)
     end
+
+    filter_targets(targets)
 
     attributes = required_data(template)
     target_data = targets.map do |target|
