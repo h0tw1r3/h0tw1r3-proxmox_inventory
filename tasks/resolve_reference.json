@@ -35,6 +35,9 @@
     "verify_ssl": {
       "type": "Optional[Boolean]"
     },
+    "type": {
+      "type": "Enum['lxc', 'qemu']"
+    },
     "target_mapping": {
       "type": "Hash"
     }

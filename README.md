@@ -33,6 +33,7 @@ It supports several configuration properties.
 * `host`: Hostname of the Proxmox node (any cluster member)
 * `port`: API port (optional)
 * `verify_ssl`: Set to false if using a self-signed certificate
+* `type`: Either *qemu* or *lxc* (required)
 * `target_mapping`: A hash of the target attributes to populate with resource
   values. Proxmox *cluster/resources* and *node configuration* attributes are
   available for mapping. Network interfaces (eg. net0, net1, ...) are
@@ -52,6 +53,7 @@ groups:
         username: admin
         password: supersecret
         realm: pve
+        type: lxc
         target_mapping:
           name: name
           uri: net.0.ip
@@ -59,7 +61,19 @@ groups:
           vars:
             arch: arch
             type: type
+      - _plugin: proxmox_inventory
+        host: pve.bogus.site
+        username: admin
+        password: supersecret
+        realm: pve
+        type: qemu
+        target_mapping:
+          name: name
+          uri: agent.net.0.ip
+          alias: vmid
 ```
+
+> **Qemu**: the agent service must be running on the VM to determine the IP address
 
 [proxmox-api]: https://rubygems.org/gems/proxmox-api/
 [Proxmox REST API]: https://pve.proxmox.com/pve-docs/api-viewer/

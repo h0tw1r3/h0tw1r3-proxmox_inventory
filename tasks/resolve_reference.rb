@@ -79,7 +79,7 @@ class ProxmoxInventory < TaskHelper
 
     # Retrieve a list resources from the cluster
     resources = client.cluster.resources.get.select do |res|
-      res[:node] if ['lxc', 'qemu'].include?(res[:type]) && ['running'].include?(res[:status])
+      res[:node] if res[:type] == opts[:type] && ['running'].include?(res[:status])
     end
 
     # Retrieve node configuration

@@ -72,6 +72,12 @@ Data type: `Optional[Boolean]`
 
 
 
+##### `type`
+
+Data type: `Enum['lxc', 'qemu']`
+
+
+
 ##### `target_mapping`
 
 Data type: `Hash`
