@@ -136,7 +136,7 @@ begin
   require 'proxmox_api'
 rescue LoadError
   require 'rubygems'
-  Gem.install('proxmox_api', '>0', 'user_install': true)
+  Gem.install('proxmox_api', '>=1.1.0', 'user_install': true)
 end
 
 ProxmoxInventory.run if $PROGRAM_NAME == __FILE__

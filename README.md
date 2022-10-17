@@ -17,8 +17,8 @@ This Bolt plugin requires the [proxmox-api] gem to connect to the [Proxmox
 REST API]. _If it is not installed, the plugin will automatically attempt to
 when the plugin is executed by Bolt._
 
-You will need a Proxmox `token` and `secret` to authenticate against the
-Proxmox API.
+You will need a `token` and `secret`, or `username`, `password` and `realm` to
+authenticate.
 
 ## Usage
 
@@ -38,9 +38,6 @@ It supports several configuration properties.
   values. Proxmox *cluster/resources* and *node configuration* attributes are
   available for mapping. Network interfaces (eg. net0, net1, ...) are
   indexed under the *net* Array[], and the value is mapped to a Hash.
-
-> **Token authentication support does not work** with the latest proxmox-api
-  gem release. A [patch] has been submitted.
 
 ## Examples
 
@@ -63,9 +60,8 @@ groups:
             type: type
       - _plugin: proxmox_inventory
         host: pve.bogus.site
-        username: admin
-        password: supersecret
-        realm: pve
+        token: admin@pve!bolt
+        secret: 095ce810-4e28-11ed-bdc3-0242ac120002
         type: qemu
         target_mapping:
           name: name
