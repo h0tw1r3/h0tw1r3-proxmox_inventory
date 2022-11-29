@@ -3,7 +3,6 @@
 
 require_relative '../../ruby_task_helper/files/task_helper.rb'
 require_relative '../../ruby_plugin_helper/lib/plugin_helper.rb'
-require 'proxmox_api'
 
 # bolt resolver plugin
 class ProxmoxInventory < TaskHelper
@@ -136,7 +135,8 @@ begin
   require 'proxmox_api'
 rescue LoadError
   require 'rubygems'
-  Gem.install('proxmox_api', '>=1.1.0', 'user_install': true)
+  Gem.install('proxmox-api', '>=1.1.0', 'user_install': true)
+  require 'proxmox_api'
 end
 
 ProxmoxInventory.run if $PROGRAM_NAME == __FILE__

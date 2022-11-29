@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.2.3
+
+* Fix automatic install of the proxmox-api gem
+
 ## Release 0.2.1
 
 * Token support now working with update to proxmox-api gem
