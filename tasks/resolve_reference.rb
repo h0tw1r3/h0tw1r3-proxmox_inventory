@@ -22,7 +22,7 @@ class ProxmoxInventory < TaskHelper
 
   def build_agent(resource, client)
     net_conf = (client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get)[:result]
-    net_conf.delete_if { |x| x[:name] !~ %r{^e} }.map do |x|
+    net_conf.delete_if { |x| x[:name] =~ %r{^lo} }.map do |x|
       x.delete(:statistics)
       x['hwaddr'] = x.delete(:"hardware-address")
       x[:"ip-addresses"].delete_if { |b| b[:"ip-address-type"] == 'ipv6' }
@@ -35,11 +35,11 @@ class ProxmoxInventory < TaskHelper
   def build_data(resource, client)
     config = client["nodes/#{resource[:node]}/#{resource[:id]}/config?current=1"].get
 
-    if config[:agent] == '1'
+    if config[:agent] && config[:agent].start_with?('1')
       begin
         config[:agent] = build_agent(resource, client)
       rescue ProxmoxAPI::ApiException
-        config[:agent] = 'support enabled but not running'
+        config[:agent] = nil
       end
     end
 
