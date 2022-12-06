@@ -36,7 +36,11 @@ class ProxmoxInventory < TaskHelper
     config = client["nodes/#{resource[:node]}/#{resource[:id]}/config?current=1"].get
 
     if config[:agent] == '1'
-      config[:agent] = build_agent(resource, client)
+      begin
+        config[:agent] = build_agent(resource, client)
+      rescue ProxmoxAPI::ApiException
+        config[:agent] = 'support enabled but not running'
+      end
     end
 
     config.keys.grep(%r{^(ipconfig|net|mp|unused)\d+}).each do |v|
