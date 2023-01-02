@@ -139,6 +139,7 @@ begin
   require 'proxmox_api'
 rescue LoadError
   require 'rubygems'
+  Gem.configuration.verbose = false
   Gem.install('proxmox-api', '>=1.1.0', 'user_install': true)
   require 'proxmox_api'
 end
