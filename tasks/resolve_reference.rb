@@ -134,7 +134,7 @@ class ProxmoxInventory < TaskHelper
 end
 
 # This bolt project requires the proxmox-api gem
-# TODO find the apropriate place to put this, if at all?
+# TODO find the appropriate place to put this, if at all?
 begin
   require 'proxmox_api'
 rescue LoadError
