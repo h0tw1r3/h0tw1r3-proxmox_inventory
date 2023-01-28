@@ -35,10 +35,10 @@ class ProxmoxInventory < TaskHelper
   def build_data(resource, client)
     config = client["nodes/#{resource[:node]}/#{resource[:id]}/config?current=1"].get
 
-    if config[:agent] && config[:agent].start_with?('1')
+    if config.key?(:agent) && config[:agent].start_with?('1')
       begin
         config[:agent] = build_agent(resource, client)
-      rescue ProxmoxAPI::ApiException
+      rescue
         config[:agent] = nil
       end
     end
