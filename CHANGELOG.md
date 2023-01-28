@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.3.0
+
+* Fix inventory error when QEMU VM's have the agent feature enabled but
+  said agent is not running or reporting an IP address.
+
 ## Release 0.2.3
 
 * Fix automatic install of the proxmox-api gem
