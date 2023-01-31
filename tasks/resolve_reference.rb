@@ -10,6 +10,8 @@ class ProxmoxInventory < TaskHelper
 
   attr_accessor :client
 
+  @@node_dns = {}
+
   def convert_key_value_string(value)
     value.split(',').map { |pair|
       key, value = pair.split('=')
@@ -20,8 +22,8 @@ class ProxmoxInventory < TaskHelper
     }.to_h
   end
 
-  def build_agent(resource, client)
-    net_conf = (client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get)[:result]
+  def build_agent(resource)
+    net_conf = (@client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get)[:result]
     net_conf.delete_if { |x| x[:name] =~ %r{^lo} }.map do |x|
       x.delete(:statistics)
       x['hwaddr'] = x.delete(:"hardware-address")
@@ -34,12 +36,12 @@ class ProxmoxInventory < TaskHelper
     { 'net' => net_conf }
   end
 
-  def build_data(resource, client)
-    config = client["nodes/#{resource[:node]}/#{resource[:id]}/config?current=1"].get
+  def build_data(resource)
+    config = @client["nodes/#{resource[:node]}/#{resource[:id]}/config?current=1"].get
 
     if config.key?(:agent) && config[:agent].start_with?('1')
       begin
-        config[:agent] = build_agent(resource, client)
+        config[:agent] = build_agent(resource)
       rescue
         config[:agent] = nil
       end
@@ -48,6 +50,18 @@ class ProxmoxInventory < TaskHelper
     config.keys.grep(%r{^(ipconfig|net|mp|unused)\d+}).each do |v|
       config[v.to_s.gsub!(%r{\d+}, '').to_sym] = []
     end
+
+    unless config.key?(:hostname)
+      config[:fqdn] = "#{config[:name]}"
+    else
+      config[:fqdn] = "#{config[:hostname]}"
+    end
+    unless config.key?(:searchdomain)
+      config[:fqdn] += ".#{get_node_dns(resource[:node])[:search]}"
+    else
+      config[:fqdn] += ".#{config[:searchdomain]}"
+    end
+
     config.each { |k, v|
       if %r{^(?<index>ipconfig|net|mp|unused)(?<count>\d+)} =~ k.to_s
         config[index.to_sym][count.to_i] = convert_key_value_string(v)
@@ -84,11 +98,15 @@ class ProxmoxInventory < TaskHelper
   end
 
   def build_client(opts)
-    return client if client
-
     config = client_config(opts)
+    @client = ProxmoxAPI.new(*config)
+  end
 
-    ProxmoxAPI.new(*config)
+  def get_node_dns(node)
+    unless @@node_dns.key?('search')
+      @@node_dns = @client["nodes/#{node}/dns"].get
+    end
+    @@node_dns
   end
 
   def filter_targets(targets)
@@ -104,16 +122,16 @@ class ProxmoxInventory < TaskHelper
       raise TaskHelper::Error.new(msg, 'bolt-plugin/validation-error')
     end
 
-    client = build_client(opts)
+    build_client(opts)
 
     # Retrieve a list resources from the cluster
-    resources = client.cluster.resources.get.select do |res|
+    resources = @client.cluster.resources.get.select do |res|
       res[:node] if res[:type] == opts[:type] && ['running'].include?(res[:status])
     end
 
     # Retrieve node configuration
     targets = resources.map do |res|
-      build_data(res, client)
+      build_data(res)
     end
 
     filter_targets(targets)

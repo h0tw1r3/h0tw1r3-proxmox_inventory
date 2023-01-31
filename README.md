@@ -52,9 +52,9 @@ groups:
         realm: pve
         type: lxc
         target_mapping:
-          name: name
+          name: fqdn
           uri: net.0.ip
-          alias: vmid
+          alias: hostname
           vars:
             arch: arch
             type: type
@@ -64,9 +64,9 @@ groups:
         secret: 095ce810-4e28-11ed-bdc3-0242ac120002
         type: qemu
         target_mapping:
-          name: name
+          name: fqdn
           uri: agent.net.0.ip
-          alias: vmid
+          alias: name
 ```
 
 > **Qemu**: the agent service must be running on the VM to determine the IP address
