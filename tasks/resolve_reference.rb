@@ -26,7 +26,9 @@ class ProxmoxInventory < TaskHelper
       x.delete(:statistics)
       x['hwaddr'] = x.delete(:"hardware-address")
       x[:"ip-addresses"].delete_if { |b| b[:"ip-address-type"] == 'ipv6' }
-      x['ip'] = x.delete(:"ip-addresses")[0][:"ip-address"]
+      unless x[:"ip-addresses"].empty?
+        x['ip'] = x.delete(:"ip-addresses")[0][:"ip-address"]
+      end
       x['name'] = x.delete(:name)
     end
     { 'net' => net_conf }
