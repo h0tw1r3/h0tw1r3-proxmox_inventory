@@ -36,10 +36,16 @@
       "type": "Optional[Boolean]"
     },
     "type": {
-      "type": "Enum['lxc', 'qemu']"
+      "type": "Enum['lxc', 'qemu', 'all']",
+      "default": "all"
     },
     "target_mapping": {
-      "type": "Hash"
+      "type": "Hash",
+      "default": {
+          "name": "fqdn",
+          "alias": "name",
+          "uri": "net.0.ip"
+      }
     }
   },
   "private": true

@@ -74,7 +74,7 @@ Data type: `Optional[Boolean]`
 
 ##### `type`
 
-Data type: `Enum['lxc', 'qemu']`
+Data type: `Enum['lxc', 'qemu', 'all']`
 
 
 

@@ -33,20 +33,24 @@ It supports several configuration properties.
 * `host`: Hostname of the Proxmox node (any cluster member)
 * `port`: API port (optional)
 * `verify_ssl`: Set to false if using a self-signed certificate
-* `type`: Either *qemu* or *lxc* (required)
+* `type`: Filter on VM type, *qemu* or *lxc* (optional, default 'all')
 * `target_mapping`: A hash of the target attributes to populate with resource
   values. Proxmox *cluster/resources* and *node configuration* attributes are
   available for mapping. Network interfaces (eg. net0, net1, ...) are
   indexed under the *net* Array[], and the value is mapped to a Hash.
+  Default mapping:
+      name: fqdn
+      alias: name
+      uri: net.0.ip
 
 ## Examples
 
 ```
 groups:
-  - name: proxmox
+  - name: lxc proxmox containers at dc1
     targets:
       - _plugin: proxmox_inventory
-        host: pve.bogus.site
+        host: dc1.bogus.site
         username: admin
         password: supersecret
         realm: pve
@@ -54,19 +58,18 @@ groups:
         target_mapping:
           name: fqdn
           uri: net.0.ip
-          alias: hostname
+          alias: name
           vars:
             arch: arch
             type: type
+  - name: all proxmox VMs at dc2
+    targets:
       - _plugin: proxmox_inventory
-        host: pve.bogus.site
+        host: dc2.another.site
         token: admin@pve!bolt
         secret: 095ce810-4e28-11ed-bdc3-0242ac120002
-        type: qemu
         target_mapping:
-          name: fqdn
-          uri: agent.net.0.ip
-          alias: name
+          alias: vmid
 ```
 
 > **Qemu**: the agent service must be running on the VM to determine the IP address

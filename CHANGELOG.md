@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.4.0
+
+* Provide a default target mapping
+* Add fqdn attribute and map to node name by default
+* Remove qemu specific agent attribute, normalize net attribute between lxc
+  and qemu.  `agent.net.0.ip` is now `net.0.ip` (same as lxc)
+* Fix inventory error when nodes have interfaces without ip addresses
+* Work-around OSX qemu agent hwaddr reporting bug
+
 ## Release 0.3.0
 
 * Fix inventory error when QEMU VM's have the agent feature enabled but
