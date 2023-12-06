@@ -2,9 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## Release 0.5.0
 
 * Fix missing qemu targets with Proxmox 8
+* Add Puppet 8, drop Puppet 6 support
 
 ## Release 0.4.0
 
