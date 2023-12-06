@@ -82,7 +82,7 @@ class ProxmoxInventory < TaskHelper
       end
     end
 
-    if config.key?(:net) && config.key?(:agent) && config[:agent].start_with?('1')
+    if config.key?(:net) && config.key?(:agent) && config[:agent] =~ %r{(^1|enabled=1)}
       resolve_qemu_network(resource, config)
     end
 

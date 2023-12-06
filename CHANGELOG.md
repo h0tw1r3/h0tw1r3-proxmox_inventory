@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Fix missing qemu targets with Proxmox 8
+
 ## Release 0.4.0
 
 * Provide a default target mapping
