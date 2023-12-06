@@ -44,7 +44,7 @@ class ProxmoxInventory < TaskHelper
     end
 
     begin
-      agent_network = (@client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get)[:result]
+      agent_network = @client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get[:result]
     rescue ProxmoxAPI::ApiException
       # no agent running?
       return
