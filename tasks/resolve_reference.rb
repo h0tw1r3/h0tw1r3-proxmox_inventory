@@ -18,77 +18,87 @@ class ProxmoxInventory < TaskHelper
     @node_dns = {}
   end
 
-  def convert_key_value_string(value)
-    value.split(',').map { |pair|
-      key, value = pair.split('=')
-      if key == 'ip'
-        value.gsub!(%r{/\d+$}, '')
-      end
-      [key, value]
-    }.to_h
+  def mask(n)
+    [ ((1 << 32) - 1) << (32 - n) ].pack('N').bytes.join('.')
   end
 
-  # Resolve and format qemu netX interfaces to look similar to lxc
-  # QEMU
-  # :net=>[{"virtio"=>"9E:5C:5F:5F:D0:1B", "bridge"=>"vmbr1"}]
-  # LXC
-  # :net=>[{"name"=>"eth0", "bridge"=>"vmbr1", "gw"=>"192.168.47.254", "hwaddr"=>"FA:77:1B:D7:3C:E2", "ip"=>"192.168.47.23", "type"=>"veth"}]
-  def resolve_qemu_network(resource, config)
-    unless config.key?(:net)
-      return
-    end
-
-    config[:net].each.map do |value|
-      device_type = value.select { |k, v| k if v.match?(%r{^(([A-Za-f\d]{2}):?){6}}) }.keys[0]
-      value['hwaddr'] = value.delete(device_type).upcase
-      value.merge!({ 'type' => device_type.to_s })
-    end
-
-    begin
-      agent_network = @client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get[:result]
-    rescue ProxmoxAPI::ApiException
-      # no agent running?
-      return
-    end
-
-    begin
-      config[:net].each.map do |value|
-        agent_net_intf = agent_network.find do |ani|
-          # rjust to work-around osx agent bug when hwaddr starts with zero
-          ani.key?(:'hardware-address') && ani[:"hardware-address"].rjust(17, '0').casecmp(value['hwaddr']).zero?
+  def parse_config_value(value)
+    if value.is_a?(String) && value.include?('=')
+      value.split(',').map { |pair|
+        key, value = pair.split('=', 2)
+        unless value
+          value = key
+          key = 'storage'
         end
-        next unless agent_net_intf.class == Hash
-        unless agent_net_intf[:'ip-addresses'].empty?
-          agent_net_intf[:'ip-addresses'].delete_if { |b| b[:'ip-address-type'] == 'ipv6' }
-          unless agent_net_intf[:"ip-addresses"].empty?
-            value['ip'] = agent_net_intf[:'ip-addresses'][0][:'ip-address']
+        [key, value]
+      }.to_h
+    else
+      value
+    end
+  end
+
+  def transform_config(config, resource)
+    interfaces = nil
+    config.each_key do |ck|
+      cv = config[ck] = parse_config_value(config[ck])
+      if ck =~ %r{(\w+)(\d+)}
+        next unless Regexp.last_match(1) == 'net'
+        # convert qemu interface=>macaddr to type=>interface and hwaddr=>macaddr
+        unless cv.key?('hwaddr')
+          device_type = cv.select { |k, v| k if v.match?(%r{^(([A-Za-f\d]{2}):?){6}}) }.keys[0]
+          cv['hwaddr'] = cv.delete(device_type).upcase
+          cv['type'] = device_type.to_s
+        end
+        # set qemu net ip from cloudinit
+        if config.key?(:"ipconfig#{Regexp.last_match(2)}")
+          cv['ip'] = config[:"ipconfig#{Regexp.last_match(2)}"]['ip']
+        end
+        # convert ip=dhcp
+        if cv['ip'] == 'dhcp'
+          # convert dhcp to cidr
+          if cv['type'] == 'veth'
+            # lxc
+            begin
+              interfaces = @client["nodes/#{resource[:node]}/#{resource[:id]}/interfaces"].get
+              interfaces.each do |n|
+                cv['ip'] = n[:inet] if n[:hwaddr].casecmp(cv['hwaddr']).zero? && n[:inet]
+              end
+            rescue ProxmoxAPI::ApiException
+              # noop
+            end
+          else
+            # qemu
+            begin
+              interfaces ||= @client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get[:result]
+              agent_net_intf = interfaces.find do |ani|
+                # rjust to work-around osx agent bug when hwaddr starts with zero
+                ani.key?(:'hardware-address') && ani[:"hardware-address"].rjust(17, '0').casecmp(cv['hwaddr']).zero?
+              end
+              if agent_net_intf.class == Hash && agent_net_intf[:'ip-addresses'].empty?
+                agent_net_intf[:'ip-addresses'].delete_if { |b| b[:'ip-address-type'] == 'ipv6' }
+                unless agent_net_intf[:"ip-addresses"].empty?
+                  cv['ip'] = agent_net_intf[:'ip-addresses'][0][:'ip-address']
+                end
+              end
+              cv['name'] = agent_net_intf[:name]
+            rescue ProxmoxAPI::ApiException
+              # noop
+            end
           end
         end
-        value['name'] = agent_net_intf[:name]
-      end
-    rescue StandardError => e
-      raise TaskHelper::Error.new("#{e.backtrace[0]} #{e.message} #{agent_network}", 'bolt-plugin/validation-error')
-    end
-  end
 
-  def resolve_lxc_network(resource, config)
-    unless config.key?(:net)
-      return
-    end
-
-    config[:net].each.map do |value|
-      next unless value['ip'] == 'dhcp'
-      begin
-        @interfaces ||= @client["nodes/#{resource[:node]}/#{resource[:id]}/interfaces"].get
-      rescue ProxmoxAPI::ApiException
-        @interfaces ||= []
-      end
-      @interfaces.each { |n| value['ip'] = n[:inet].split('/')[0] if n[:hwaddr].casecmp(value['hwaddr']).zero? && n.key?(:inet) }
-      next unless value['ip'] == 'dhcp'
-      begin
-        value['ip'] = Resolv.getaddress(config[:fqdn])
-      rescue Resolv::ResolvError
-        # noop
+        # convert ip=cidr
+        if cv['ip'] != 'dhcp'
+          ip, mask = cv['ip'].split('/')
+          cv['ip'] = ip
+          cv['netmask'] = mask(mask.to_i)
+        else
+          begin
+            cv['ip'] = Resolv.getaddress(config[:fqdn])
+          rescue Resolv::ResolvError
+            # noop
+          end
+        end
       end
     end
   end
@@ -96,15 +106,7 @@ class ProxmoxInventory < TaskHelper
   def build_data(resource)
     config = @client["nodes/#{resource[:node]}/#{resource[:id]}/config?current=1"].get
 
-    config.keys.grep(%r{^(ipconfig|net|mp|unused)\d+}).each do |v|
-      config[v.to_s.gsub!(%r{\d+}, '').to_sym] = []
-    end
-    config.each do |k, v|
-      if %r{^(?<index>ipconfig|net|mp|unused)(?<count>\d+)} =~ k.to_s
-        config[index.to_sym][count.to_i] = convert_key_value_string(v)
-      end
-    end
-
+    # build the fqdn
     config[:fqdn] = if config.key?(:hostname)
                       config[:hostname].to_s
                     else
@@ -117,12 +119,7 @@ class ProxmoxInventory < TaskHelper
                        ".#{get_node_dns(resource[:node])[:search]}"
                      end
 
-    if config.key?(:agent) && config[:agent] =~ %r{(^1|enabled=1)}
-      resolve_qemu_network(resource, config)
-    elsif resource[:id].match?(%r{^lxc})
-      resolve_lxc_network(resource, config)
-    end
-
+    config = transform_config(config, resource)
     config.merge(resource)
   end
 
@@ -168,7 +165,7 @@ class ProxmoxInventory < TaskHelper
 
   def filter_targets(targets)
     targets.delete_if do |t|
-      !t.key?(:net) || t[:net].class != Array || !t[:net][0].key?('ip') || t[:net][0]['ip'] == 'dhcp'
+      !t.key?(:net0) || !t[:net0].key?('ip') || t[:net0]['ip'] == 'dhcp'
     end
   end
 

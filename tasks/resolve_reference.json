@@ -44,7 +44,7 @@
       "default": {
           "name": "fqdn",
           "alias": "name",
-          "uri": "net.0.ip"
+          "uri": "net0.ip"
       }
     }
   },

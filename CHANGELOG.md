@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* BREAKING: `net` is no longer an array, use `net0` instead.
+* Default uri is now `net0.ip`
+
 ## Release 0.6.2
 
 * Fix resolving container DHCP ip address

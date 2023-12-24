@@ -36,12 +36,12 @@ It supports several configuration properties.
 * `type`: Filter on VM type, *qemu* or *lxc* (optional, default 'all')
 * `target_mapping`: A hash of the target attributes to populate with resource
   values. Proxmox *cluster/resources* and *node configuration* attributes are
-  available for mapping. Network interfaces (eg. net0, net1, ...) are
-  indexed under the *net* Array[], and the value is mapped to a Hash.
+  available for mapping. Network interface (eg. net0, net1, ...) string value
+  is converted to a Hash.
   Default mapping:
       name: fqdn
       alias: name
-      uri: net.0.ip
+      uri: net0.ip
 
 ## Examples
 
@@ -57,7 +57,7 @@ groups:
         type: lxc
         target_mapping:
           name: fqdn
-          uri: net.0.ip
+          uri: net0.ip
           alias: name
           vars:
             arch: arch
