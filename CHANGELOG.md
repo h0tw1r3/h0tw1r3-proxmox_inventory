@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## Release 0.7.0
 
 * BREAKING: `net` is no longer an array, use `net0` instead.
 * Default uri is now `net0.ip`
