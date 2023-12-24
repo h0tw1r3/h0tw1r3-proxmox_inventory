@@ -83,7 +83,7 @@ class ProxmoxInventory < TaskHelper
       rescue ProxmoxAPI::ApiException
         @interfaces ||= []
       end
-      @interfaces.each { |n| value['ip'] = n[:inet].split('/')[0] if n[:hwaddr].casecmp(value['hwaddr']) && n.key?(:inet) }
+      @interfaces.each { |n| value['ip'] = n[:inet].split('/')[0] if n[:hwaddr].casecmp(value['hwaddr']).zero? && n.key?(:inet) }
       next unless value['ip'] == 'dhcp'
       begin
         value['ip'] = Resolv.getaddress(config[:fqdn])
