@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.6.2
+
+* Fix resolving container DHCP ip address
+
 ## Release 0.6.0
 
 * Support resolving container DHCP ip address
