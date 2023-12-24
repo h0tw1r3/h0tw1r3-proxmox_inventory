@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Support resolving container DHCP ip address
+
 ## Release 0.5.0
 
 * Fix missing qemu targets with Proxmox 8

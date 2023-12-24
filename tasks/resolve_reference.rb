@@ -3,6 +3,7 @@
 
 require_relative '../../ruby_task_helper/files/task_helper.rb'
 require_relative '../../ruby_plugin_helper/lib/plugin_helper.rb'
+require 'resolv'
 
 # bolt resolver plugin
 class ProxmoxInventory < TaskHelper
@@ -70,6 +71,28 @@ class ProxmoxInventory < TaskHelper
     end
   end
 
+  def resolve_lxc_network(resource, config)
+    unless config.key?(:net)
+      return
+    end
+
+    config[:net].each.map do |value|
+      next unless value['ip'] == 'dhcp'
+      begin
+        @interfaces ||= @client["nodes/#{resource[:node]}/#{resource[:id]}/interfaces"].get
+      rescue ProxmoxAPI::ApiException
+        @interfaces ||= []
+      end
+      @interfaces.each { |n| value['ip'] = n[:inet].split('/')[0] if n[:hwaddr].casecmp(value['hwaddr']) }
+      next unless value['ip'] == 'dhcp'
+      begin
+        value['ip'] = Resolv::DNS.open { |x| x.getaddress(value['ip']) }
+      rescue Resolv::ResolvError
+        # noop
+      end
+    end
+  end
+
   def build_data(resource)
     config = @client["nodes/#{resource[:node]}/#{resource[:id]}/config?current=1"].get
 
@@ -82,8 +105,10 @@ class ProxmoxInventory < TaskHelper
       end
     end
 
-    if config.key?(:net) && config.key?(:agent) && config[:agent] =~ %r{(^1|enabled=1)}
+    if config.key?(:agent) && config[:agent] =~ %r{(^1|enabled=1)}
       resolve_qemu_network(resource, config)
+    elsif resource[:id].match?(%r{^lxc})
+      resolve_lxc_network(resource, config)
     end
 
     config[:fqdn] = if config.key?(:hostname)
@@ -143,7 +168,7 @@ class ProxmoxInventory < TaskHelper
 
   def filter_targets(targets)
     targets.delete_if do |t|
-      !t.key?(:net) || t[:net].class != Array || !t[:net][0].key?('ip')
+      !t.key?(:net) || t[:net].class != Array || !t[:net][0].key?('ip') || t[:net][0]['ip'] == 'dhcp'
     end
   end
 
