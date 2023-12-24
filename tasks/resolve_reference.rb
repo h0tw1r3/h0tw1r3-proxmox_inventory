@@ -83,10 +83,10 @@ class ProxmoxInventory < TaskHelper
       rescue ProxmoxAPI::ApiException
         @interfaces ||= []
       end
-      @interfaces.each { |n| value['ip'] = n[:inet].split('/')[0] if n[:hwaddr].casecmp(value['hwaddr']) }
+      @interfaces.each { |n| value['ip'] = n[:inet].split('/')[0] if n[:hwaddr].casecmp(value['hwaddr']) && n.key?(:inet) }
       next unless value['ip'] == 'dhcp'
       begin
-        value['ip'] = Resolv::DNS.open { |x| x.getaddress(value['ip']) }
+        value['ip'] = Resolv.getaddress(config[:fqdn])
       rescue Resolv::ResolvError
         # noop
       end
@@ -105,12 +105,6 @@ class ProxmoxInventory < TaskHelper
       end
     end
 
-    if config.key?(:agent) && config[:agent] =~ %r{(^1|enabled=1)}
-      resolve_qemu_network(resource, config)
-    elsif resource[:id].match?(%r{^lxc})
-      resolve_lxc_network(resource, config)
-    end
-
     config[:fqdn] = if config.key?(:hostname)
                       config[:hostname].to_s
                     else
@@ -122,6 +116,12 @@ class ProxmoxInventory < TaskHelper
                      else
                        ".#{get_node_dns(resource[:node])[:search]}"
                      end
+
+    if config.key?(:agent) && config[:agent] =~ %r{(^1|enabled=1)}
+      resolve_qemu_network(resource, config)
+    elsif resource[:id].match?(%r{^lxc})
+      resolve_lxc_network(resource, config)
+    end
 
     config.merge(resource)
   end
