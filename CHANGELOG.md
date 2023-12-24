@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## Release 0.6.0
 
 * Support resolving container DHCP ip address
 

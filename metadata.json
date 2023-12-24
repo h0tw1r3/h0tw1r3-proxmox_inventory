@@ -1,6 +1,6 @@
 {
   "name": "h0tw1r3-proxmox_inventory",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "author": "h0tw1r3",
   "summary": "A task to generate Bolt inventory from Promxox",
   "license": "MIT",
