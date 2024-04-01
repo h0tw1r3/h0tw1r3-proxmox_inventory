@@ -85,13 +85,15 @@ class ProxmoxInventory < TaskHelper
               # noop
             end
           end
-        end
-
         # convert ip=cidr
-        if cv['ip'] != 'dhcp'
-          ip, mask = cv['ip'].split('/')
-          cv['ip'] = ip
-          cv['netmask'] = mask(mask.to_i)
+        elsif cv['ip']
+          begin
+            ip, mask = cv['ip'].split('/')
+            cv['ip'] = ip
+            cv['netmask'] = mask(mask.to_i)
+          rescue StandardError => e
+            raise e.exception("Message: #{cv}")
+          end
         else
           begin
             cv['ip'] = Resolv.getaddress(config[:fqdn])

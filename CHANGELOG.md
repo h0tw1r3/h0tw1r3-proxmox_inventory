@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+* Fix error when IP is not set
+
 ## Release 0.7.0
 
 * BREAKING: `net` is no longer an array, use `net0` instead.
