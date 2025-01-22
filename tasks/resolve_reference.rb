@@ -42,65 +42,64 @@ class ProxmoxInventory < TaskHelper
     interfaces = nil
     config.each_key do |ck|
       cv = config[ck] = parse_config_value(config[ck])
-      if ck =~ %r{(\w+)(\d+)}
-        next unless Regexp.last_match(1) == 'net'
-        # convert qemu interface=>macaddr to type=>interface and hwaddr=>macaddr
-        unless cv.key?('hwaddr')
-          device_type = cv.select { |k, v| k if v.match?(%r{^(([A-Za-f\d]{2}):?){6}}) }.keys[0]
-          cv['hwaddr'] = cv.delete(device_type).upcase
-          cv['type'] = device_type.to_s
-        end
-        # set qemu net ip from cloudinit
-        if config.key?(:"ipconfig#{Regexp.last_match(2)}")
-          cv['ip'] = config[:"ipconfig#{Regexp.last_match(2)}"]['ip']
-        end
-        # convert ip=dhcp
-        if cv['ip'] == 'dhcp'
-          # convert dhcp to cidr
-          if cv['type'] == 'veth'
-            # lxc
-            begin
-              interfaces = @client["nodes/#{resource[:node]}/#{resource[:id]}/interfaces"].get
-              interfaces.each do |n|
-                cv['ip'] = n[:inet] if n[:hwaddr].casecmp(cv['hwaddr']).zero? && n[:inet]
-              end
-            rescue ProxmoxAPI::ApiException
-              # noop
-            end
-          else
-            # qemu
-            begin
-              interfaces ||= @client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get[:result]
-              agent_net_intf = interfaces.find do |ani|
-                # rjust to work-around osx agent bug when hwaddr starts with zero
-                ani.key?(:'hardware-address') && ani[:"hardware-address"].rjust(17, '0').casecmp(cv['hwaddr']).zero?
-              end
-              if agent_net_intf.class == Hash && agent_net_intf[:'ip-addresses'].empty?
-                agent_net_intf[:'ip-addresses'].delete_if { |b| b[:'ip-address-type'] == 'ipv6' }
-                unless agent_net_intf[:"ip-addresses"].empty?
-                  cv['ip'] = agent_net_intf[:'ip-addresses'][0][:'ip-address']
-                end
-              end
-              cv['name'] = agent_net_intf[:name]
-            rescue ProxmoxAPI::ApiException
-              # noop
-            end
-          end
-        # convert ip=cidr
-        elsif cv['ip']
+      next unless ck =~ %r{(\w+)(\d+)}
+      next unless Regexp.last_match(1) == 'net'
+      # convert qemu interface=>macaddr to type=>interface and hwaddr=>macaddr
+      unless cv.key?('hwaddr')
+        device_type = cv.select { |k, v| k if v.match?(%r{^(([A-Za-f\d]{2}):?){6}}) }.keys[0]
+        cv['hwaddr'] = cv.delete(device_type).upcase
+        cv['type'] = device_type.to_s
+      end
+      # set qemu net ip from cloudinit
+      if config.key?(:"ipconfig#{Regexp.last_match(2)}")
+        cv['ip'] = config[:"ipconfig#{Regexp.last_match(2)}"]['ip']
+      end
+      # convert ip=dhcp
+      if cv['ip'] == 'dhcp'
+        # convert dhcp to cidr
+        if cv['type'] == 'veth'
+          # lxc
           begin
-            ip, mask = cv['ip'].split('/')
-            cv['ip'] = ip
-            cv['netmask'] = mask(mask.to_i)
-          rescue StandardError => e
-            raise e.exception("Message: #{cv}")
-          end
-        else
-          begin
-            cv['ip'] = Resolv.getaddress(config[:fqdn])
-          rescue Resolv::ResolvError
+            interfaces = @client["nodes/#{resource[:node]}/#{resource[:id]}/interfaces"].get
+            interfaces.each do |n|
+              cv['ip'] = n[:inet] if n[:hwaddr].casecmp(cv['hwaddr']).zero? && n[:inet]
+            end
+          rescue ProxmoxAPI::ApiException
             # noop
           end
+        else
+          # qemu
+          begin
+            interfaces ||= @client["nodes/#{resource[:node]}/#{resource[:id]}/agent/network-get-interfaces"].get[:result]
+            agent_net_intf = interfaces.find do |ani|
+              # rjust to work-around osx agent bug when hwaddr starts with zero
+              ani.key?(:'hardware-address') && ani[:"hardware-address"].rjust(17, '0').casecmp(cv['hwaddr']).zero?
+            end
+            if agent_net_intf.class == Hash && agent_net_intf[:'ip-addresses'].empty?
+              agent_net_intf[:'ip-addresses'].delete_if { |b| b[:'ip-address-type'] == 'ipv6' }
+              unless agent_net_intf[:"ip-addresses"].empty?
+                cv['ip'] = agent_net_intf[:'ip-addresses'][0][:'ip-address']
+              end
+            end
+            cv['name'] = agent_net_intf[:name]
+          rescue ProxmoxAPI::ApiException
+            # noop
+          end
+        end
+      # convert ip=cidr
+      elsif cv['ip']
+        begin
+          ip, mask = cv['ip'].split('/')
+          cv['ip'] = ip
+          cv['netmask'] = mask(mask.to_i)
+        rescue StandardError => e
+          raise e.exception("Message: #{cv}")
+        end
+      else
+        begin
+          cv['ip'] = Resolv.getaddress(config[:fqdn])
+        rescue Resolv::ResolvError
+          # noop
         end
       end
     end
@@ -213,9 +212,9 @@ end
 # This bolt project requires the proxmox-api gem
 # TODO find the appropriate place to put this, if at all?
 begin
-  Gem::Specification::find_by_name('proxmox-api')
+  Gem::Specification.find_by_name('proxmox-api')
 rescue Gem::LoadError
-  default_ui = Gem.ui() # lazy loads user_interactions (SilentUI)
+  _ = Gem.ui # lazy loads user_interactions (SilentUI)
   ui = Gem::SilentUI.new
   Gem::DefaultUserInteraction.use_ui ui do
     Gem.configuration.verbose = false
