@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.8.0
+
+* Bolt 4 support
+
 ## Release 0.7.1
 
 * Fix error when IP is not set
