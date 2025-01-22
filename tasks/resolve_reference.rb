@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'rubygems'
 require_relative '../../ruby_task_helper/files/task_helper.rb'
 require_relative '../../ruby_plugin_helper/lib/plugin_helper.rb'
 require 'resolv'
@@ -212,15 +213,16 @@ end
 # This bolt project requires the proxmox-api gem
 # TODO find the appropriate place to put this, if at all?
 begin
-  require 'proxmox_api'
-rescue LoadError
-  require 'rubygems'
+  Gem::Specification::find_by_name('proxmox-api')
+rescue Gem::LoadError
+  default_ui = Gem.ui() # lazy loads user_interactions (SilentUI)
   ui = Gem::SilentUI.new
   Gem::DefaultUserInteraction.use_ui ui do
     Gem.configuration.verbose = false
     Gem.install('proxmox-api', '>=1.1.0', 'user_install': true)
   end
-  require 'proxmox_api'
 end
+
+require 'proxmox_api'
 
 ProxmoxInventory.run if $PROGRAM_NAME == __FILE__
